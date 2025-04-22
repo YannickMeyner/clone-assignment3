@@ -1,0 +1,147 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Create bin",
+            "type": "shell",
+            "command": "mkdir",
+            "args": [
+                "-p",
+                "${fileDirname}/bin"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "type": "shell",
+            "label": "CUDA: BUILD",
+            "command": "nvcc",
+            "args": [
+                "-g",
+                "-G",
+                "-ccbin",
+                "g++",
+                "-m64",
+                "-gencode",
+                "arch=compute_86,code=sm_86",
+                "${fileBasenameNoExtension}.cu",
+                "-ICommon",
+                "-o",
+                "bin/${fileBasenameNoExtension}"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": ["Create bin"],
+        },
+        {
+            "type": "shell",
+            "label": "CUDA: BUILD (optimized)",
+            "command": "nvcc",
+            "args": [
+                "-ccbin",
+                "g++",
+                "-m64",
+                "-gencode",
+                "arch=compute_86,code=sm_86",
+                "${fileBasenameNoExtension}.cu",
+                "-ICommon",
+                "-O3",
+                "--generate-line-info",
+                "-o",
+                "bin/${fileBasenameNoExtension}_optimized"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": ["Create bin"],
+        },
+        {
+            "label": "CUDA: RUN",
+            "command": "./bin/${fileBasenameNoExtension}_optimized",
+            "dependsOn": [
+                "CUDA: BUILD (optimized)"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "CUDA: PROFILE (nsys)",
+            "type": "shell",
+            "command": "nsys",
+            "args": [
+                "profile",
+                "-f",
+                "true",
+                "-o",
+                "${fileBasenameNoExtension}",
+                "-t",
+                "cuda",
+                "--stats",
+                "true",
+                "bin/${fileBasenameNoExtension}_optimized"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "CUDA: PROFILE (ncu)",
+            "type": "process",
+            "command": "ncu",
+            "args": [
+                "-f",
+                "-o",
+                "${fileBasenameNoExtension}",
+                "--print-summary",
+                "per-kernel",
+                "--section",
+                "ComputeWorkloadAnalysis",
+                "--section",
+                "InstructionStats",
+                "--section",
+                "LaunchStats",
+                "--section",
+                "MemoryWorkloadAnalysis",
+                "--section",
+                "MemoryWorkloadAnalysis_Chart",
+                "--section",
+                "MemoryWorkloadAnalysis_Tables",
+                "--section",
+                "Occupancy",
+                "--section",
+                "SchedulerStats",
+                "--section",
+                "SpeedOfLight",
+                "--section",
+                "SpeedOfLight_HierarchicalSingleRooflineChart",
+                "--section",
+                "SpeedOfLight_RooflineChart",
+                "--section",
+                "WarpStateStats",
+                "--section",
+                "SourceCounters",
+                "--target-processes",
+                "all",
+                "bin/${fileBasenameNoExtension}_optimized"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
